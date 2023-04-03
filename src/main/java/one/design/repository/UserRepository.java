@@ -1,2 +1,14 @@
-package one.design.repository;public interface UserRepository {
+package one.design.repository;
+
+import one.design.domain.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Integer> {
+
+    Optional<User> findByUserId(String userId);
+
 }
