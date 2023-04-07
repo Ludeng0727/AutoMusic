@@ -8,9 +8,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.io.IOException;
 
 @RestController
 @RequiredArgsConstructor
@@ -23,7 +26,7 @@ public class UserController {
     @PostMapping("/signUp")
     public ResponseEntity<User> signUp(@RequestBody User newUser){
         if (userService.findByUserId(newUser).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "중복 아이디");
+            throw new IllegalArgumentException("아이디 중복");
         }
 
         userService.signUp(newUser);
