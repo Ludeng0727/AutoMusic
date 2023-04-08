@@ -33,7 +33,7 @@ public class UserController {
         return ResponseEntity.ok(newUser);
     }
 
-    @GetMapping("/signIn")
+    @PostMapping("/signIn")
     public ResponseEntity<User> signIn(@RequestBody User user, HttpServletRequest request){
         if (userService.findByUserId(user).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "로그인 실패");
