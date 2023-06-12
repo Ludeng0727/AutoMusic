@@ -17,5 +17,4 @@ public class MusicDto {
     int bpm;
     int highlow;
     Map<String,Integer> instrument;
-
 }

@@ -11,12 +11,12 @@ import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.ServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/song")
@@ -25,16 +25,42 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SongController {
 
+    static boolean isWorking = false;
     private final SongService songService;
     private final SongRepository songRepository;
 
-    @PostMapping
-    public ResponseEntity<?> createSong(@RequestBody MusicDto musicDto, @RequestBody String fileName, Authentication authentication) throws IOException {
+    @DeleteMapping("/{fileName}")
+    public ResponseEntity<?> deleteSong(@PathVariable String fileName, Authentication authentication){
         String userId = authentication.getName();
-        Song song = new Song(fileName,userId);
-        songService.createSong(musicDto, fileName, userId);
+        String path = "C:\\Users\\Administrator\\Desktop\\study\\design\\src\\main\\resources\\static\\music/"+ userId + "_" + fileName +".wav";
 
+        File file = new File(path);
+
+        if (file.exists()){
+            boolean delete = file.delete();
+            if (delete){
+                songRepository.deleteByFileName(fileName);
+                List<Song> all = songRepository.findAllByUserId(userId);
+                return ResponseEntity.ok(all);
+            }
+            return ResponseEntity.internalServerError().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @PostMapping
+    public ResponseEntity<?> createSong(@RequestBody MusicDto musicDto, Authentication authentication) throws IOException, InterruptedException {
+        if (isWorking){
+            return ResponseEntity.internalServerError().build();
+        }
+        isWorking = true;
+
+        String uuid = UUID.randomUUID().toString();
+        String userId = authentication.getName();
+        Song song = new Song(uuid, userId);
+        songService.createSong(musicDto, uuid, userId);
         Song insertedSong = songRepository.save(song);
+        isWorking = false;
 
         return new ResponseEntity<>(insertedSong, HttpStatus.CREATED);
     }
@@ -47,9 +73,14 @@ public class SongController {
 
     @GetMapping
     public ResponseEntity<List<Song>> getSongs(){
-        return ResponseEntity.ok(songRepository.findAll());
-    }
 
+        List<Song> all = songRepository.findAll();
+        Song sample = songRepository.findByFileName("sample").get();
+        all.remove(sample);
+
+        return ResponseEntity.ok(all);
+
+    }
 
     @GetMapping("/{fileName}")
     public ResponseEntity<Song> getSong(@PathVariable String fileName){
@@ -58,8 +89,8 @@ public class SongController {
             return ResponseEntity.ok(song.get());
         }
         else{
+            log.info("404");
             return ResponseEntity.notFound().build();
         }
-
     }
 }

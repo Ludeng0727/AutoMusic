@@ -12,10 +12,7 @@ import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import java.io.*;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class SongService {
@@ -23,6 +20,7 @@ public class SongService {
     private String url = "http://automusic.iptime.org:8000/auto_music";
 
     public void createSong(MusicDto musicDto, String fileName, String userId) throws JsonProcessingException, FileNotFoundException {
+
         String filePath = "C:\\Users\\Administrator\\Desktop\\study\\design\\src\\main\\resources\\static\\music/"+ userId + "_" + fileName +".wav";
         ObjectMapper mapper = new ObjectMapper();
 

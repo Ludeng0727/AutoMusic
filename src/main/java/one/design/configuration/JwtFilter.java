@@ -29,15 +29,11 @@ public class JwtFilter extends OncePerRequestFilter {
     private final UserService userService;
     private final String secretKey;
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    private void tokenCheck(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         final String token = request.getHeader(HttpHeaders.AUTHORIZATION);
-        ObjectMapper objectMapper = new ObjectMapper();
-        SimpleError simpleError = new SimpleError("auth", "로그인이 필요합니다.");
-
         if(token == null){//
-            filterChain.doFilter(request,response);
             log.info("토큰 없음");
+            filterChain.doFilter(request,response);
             return;
         }
 
@@ -54,6 +50,29 @@ public class JwtFilter extends OncePerRequestFilter {
 
         authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        final String token = request.getHeader(HttpHeaders.AUTHORIZATION);
+        String requestURI = request.getRequestURI();
+        String method = request.getMethod();
+        log.info(method + requestURI);
+
+        if(method.equals("POST")&&requestURI.equals("/song")){
+            tokenCheck(request,response,filterChain);
+        }
+        if(method.equals("GET")&&requestURI.equals("/song/my")){
+            tokenCheck(request,response,filterChain);
+        }
+        if (method.equals("DELETE")&&requestURI.startsWith("/song")){
+            tokenCheck(request,response,filterChain);
+        }
+
+
         filterChain.doFilter(request, response);
     }
+
+
 }
