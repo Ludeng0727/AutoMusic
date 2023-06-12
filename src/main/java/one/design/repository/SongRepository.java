@@ -9,8 +9,6 @@ import java.util.Optional;
 
 public interface SongRepository extends JpaRepository<Song, String> {
 
-    boolean existsSongByFileNameEquals(String fileName);
-
     Optional<Song> findByFileName(String fileName);
     List<Song> findAllByUserId(String userId);
     @Transactional

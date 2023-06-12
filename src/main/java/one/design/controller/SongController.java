@@ -4,19 +4,18 @@ package one.design.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import one.design.domain.Song;
-import one.design.dto.MusicDto;
+import one.design.dto.SongInputDto;
+import one.design.dto.SongOutputDto;
 import one.design.repository.SongRepository;
 import one.design.service.SongService;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.ServletRequest;
-import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/song")
@@ -30,26 +29,18 @@ public class SongController {
     private final SongRepository songRepository;
 
     @DeleteMapping("/{fileName}")
-    public ResponseEntity<?> deleteSong(@PathVariable String fileName, Authentication authentication){
+    public ResponseEntity<List<SongOutputDto>> deleteSong(@PathVariable String fileName, Authentication authentication){
         String userId = authentication.getName();
-        String path = "C:\\Users\\Administrator\\Desktop\\study\\design\\src\\main\\resources\\static\\music/"+ userId + "_" + fileName +".wav";
+        songRepository.deleteByFileName(fileName);
+        List<SongOutputDto> allSong = songRepository.findAllByUserId(userId).stream()
+                .map(song -> new SongOutputDto(song.getUserId(), song.getFileName()))
+                .collect(Collectors.toList());
 
-        File file = new File(path);
-
-        if (file.exists()){
-            boolean delete = file.delete();
-            if (delete){
-                songRepository.deleteByFileName(fileName);
-                List<Song> all = songRepository.findAllByUserId(userId);
-                return ResponseEntity.ok(all);
-            }
-            return ResponseEntity.internalServerError().build();
-        }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(allSong);
     }
 
     @PostMapping
-    public ResponseEntity<?> createSong(@RequestBody MusicDto musicDto, Authentication authentication) throws IOException, InterruptedException {
+    public ResponseEntity<SongOutputDto> createSong(@RequestBody SongInputDto songInputDto, Authentication authentication) throws IOException, InterruptedException {
         if (isWorking){
             return ResponseEntity.internalServerError().build();
         }
@@ -57,36 +48,43 @@ public class SongController {
 
         String uuid = UUID.randomUUID().toString();
         String userId = authentication.getName();
-        Song song = new Song(uuid, userId);
-        songService.createSong(musicDto, uuid, userId);
-        Song insertedSong = songRepository.save(song);
+
+        Song createdSong = songService.createSong(songInputDto, uuid, userId);
+
         isWorking = false;
 
-        return new ResponseEntity<>(insertedSong, HttpStatus.CREATED);
+        return new ResponseEntity<>(new SongOutputDto(createdSong.getUserId(), createdSong.getFileName()), HttpStatus.CREATED);
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<Song>> mySongs(Authentication authentication){
+    public ResponseEntity<List<SongOutputDto>> mySongs(Authentication authentication){
         String userId = authentication.getName();
-        return ResponseEntity.ok(songRepository.findAllByUserId(userId));
+        return ResponseEntity.ok(songRepository.findAllByUserId(userId)
+                .stream()
+                .map(song -> new SongOutputDto(song.getUserId(), song.getFileName()))
+                .collect(Collectors.toList())
+
+        );
     }
 
     @GetMapping
-    public ResponseEntity<List<Song>> getSongs(){
+    public ResponseEntity<List<SongOutputDto>> getSongs(){
 
-        List<Song> all = songRepository.findAll();
-        Song sample = songRepository.findByFileName("sample").get();
-        all.remove(sample);
+        List<SongOutputDto> all = songRepository.findAll().stream()
+                .map(song -> new SongOutputDto(song.getUserId(), song.getFileName()))
+                .collect(Collectors.toList());
 
         return ResponseEntity.ok(all);
 
     }
 
     @GetMapping("/{fileName}")
-    public ResponseEntity<Song> getSong(@PathVariable String fileName){
-        Optional<Song> song = songRepository.findByFileName(fileName);
-        if(song.isPresent()){
-            return ResponseEntity.ok(song.get());
+    public ResponseEntity<byte[]> getSong(@PathVariable String fileName){
+        Optional<Song> find = songRepository.findByFileName(fileName);
+        if(find.isPresent()){
+            Song song = find.get();
+            byte[] data = song.getData();
+            return ResponseEntity.ok(data);
         }
         else{
             log.info("404");
